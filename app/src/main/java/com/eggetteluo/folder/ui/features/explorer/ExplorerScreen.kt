@@ -146,7 +146,7 @@ fun ExplorerScreen(userId: String, contentPadding: PaddingValues) {
         ) {
             LazyColumn(
                 contentPadding = PaddingValues(
-                    bottom = paddingValues.calculateBottomPadding()
+                    bottom = contentPadding.calculateBottomPadding()
                 )
             ) {
                 items(fileList) { file ->
