@@ -148,15 +148,21 @@ fun ExplorerScreen(userId: String) {
         Column(
             modifier = Modifier.padding(paddingValues)
         ) {
-            LazyColumn {
-                items(fileList) { file ->
-                    FileRow(file = file) {
-                        if (file.isDirectory) {
-                            // 如果是文件夹，加载内容
-                            viewModel.loadFiles(File(file.path))
-                        } else {
-                            // 如果是文件，尝试打开
-                            viewModel.openFile(context, file)
+            if (fileList.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("文件夹为空", color = Color.Gray)
+                }
+            } else {
+                LazyColumn {
+                    items(fileList) { file ->
+                        FileRow(file = file) {
+                            if (file.isDirectory) {
+                                // 如果是文件夹，加载内容
+                                viewModel.loadFiles(File(file.path))
+                            } else {
+                                // 如果是文件，尝试打开
+                                viewModel.openFile(context, file)
+                            }
                         }
                     }
                 }
