@@ -11,7 +11,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String) -> Unit // 登录成功后的跳转回’调
+    onLoginSuccess: (String) -> Unit
 ) {
     val viewModel: LoginViewModel = viewModel()
     val username by viewModel.usernameInput.collectAsState()

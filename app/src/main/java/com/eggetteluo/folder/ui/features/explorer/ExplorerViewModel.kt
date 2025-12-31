@@ -3,6 +3,7 @@ package com.eggetteluo.folder.ui.features.explorer
 import android.content.Context
 import android.content.Intent
 import android.os.Environment
+import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
@@ -21,12 +22,15 @@ class ExplorerViewModel : ViewModel() {
     private var userRoot: File? = null
 
     fun initUserSpace(userId: String) {
-        // 这里的路径逻辑可以封装到 data 层
         val root = File("/storage/emulated/0/MyFileManager/$userId")
         if (!root.exists()) root.mkdirs()
 
         userRoot = root
         loadFiles(root)
+    }
+
+    fun isRoot(): Boolean {
+        return _currentPath.value?.absolutePath == userRoot?.absolutePath
     }
 
     fun loadFiles(directory: File) {
@@ -87,6 +91,7 @@ class ExplorerViewModel : ViewModel() {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            Log.d("xiaoluo", "文件创建失败: ${e.message}")
             // 实际开发中建议通过另一个 StateFlow 发送错误消息给 UI
         }
     }
