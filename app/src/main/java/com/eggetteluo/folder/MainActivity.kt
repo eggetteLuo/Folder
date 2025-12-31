@@ -21,33 +21,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import androidx.navigation.compose.rememberNavController
 import com.eggetteluo.folder.model.FileItem
+import com.eggetteluo.folder.ui.navigation.AppNavGraph
 import com.eggetteluo.folder.ui.theme.FolderTheme
 import com.eggetteluo.folder.viewModel.FileViewModel
 import com.permissionx.guolindev.PermissionX
 import java.io.File
 
 class MainActivity : FragmentActivity() {
-
-    private val fileViewModel: FileViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             FolderTheme {
-                val hasPermission by fileViewModel.hasPermission.collectAsState()
-
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                        if (hasPermission) {
-                            FileExplorerScreen(fileViewModel)
-                        } else {
-                            PermissionGuideScreen {
-                                requestStoragePermission(this@MainActivity) {
-                                    fileViewModel.onPermissionGranted()
-                                }
-                            }
+                FolderTheme {
+                    val navController = rememberNavController()
+                    Scaffold { innerPadding ->
+                        Box(modifier = Modifier.padding(innerPadding)) {
+                            AppNavGraph(navController = navController)
                         }
                     }
                 }
