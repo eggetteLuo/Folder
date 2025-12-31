@@ -4,8 +4,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.compose.rememberNavController
@@ -20,8 +19,10 @@ class MainActivity : FragmentActivity() {
             FolderTheme {
                 FolderTheme {
                     val navController = rememberNavController()
-                    Scaffold { innerPadding ->
-                        AppNavGraph(navController = navController, contentPadding = innerPadding)
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        AppNavGraph(navController = navController)
                     }
                 }
             }

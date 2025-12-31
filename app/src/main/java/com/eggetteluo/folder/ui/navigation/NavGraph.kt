@@ -1,7 +1,6 @@
 package com.eggetteluo.folder.ui.navigation
 
 import android.os.Environment
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -11,10 +10,7 @@ import com.eggetteluo.folder.ui.features.login.LoginScreen
 import com.eggetteluo.folder.ui.features.permission.PermissionScreen
 
 @Composable
-fun AppNavGraph(
-    navController: NavHostController,
-    contentPadding: PaddingValues
-) {
+fun AppNavGraph(navController: NavHostController) {
     val startDest = if (Environment.isExternalStorageManager()) {
         Screen.Login.route
     } else {
@@ -48,10 +44,7 @@ fun AppNavGraph(
         // 文件管理页面路由
         composable(Screen.Explorer.route) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            ExplorerScreen(
-                userId = userId,
-                contentPadding = contentPadding
-            )
+            ExplorerScreen(userId = userId)
         }
     }
 }

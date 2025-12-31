@@ -4,7 +4,6 @@ import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -30,7 +28,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,7 +44,7 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExplorerScreen(userId: String, contentPadding: PaddingValues) {
+fun ExplorerScreen(userId: String) {
     val viewModel: ExplorerViewModel = viewModel()
     val fileList by viewModel.fileList.collectAsState()
     val currentPath by viewModel.currentPath.collectAsState()
@@ -50,7 +54,7 @@ fun ExplorerScreen(userId: String, contentPadding: PaddingValues) {
 
     val showDialog = remember { mutableStateOf(false) }
     val newFolderName = remember { mutableStateOf("") }
-    var showMenu = remember { mutableStateOf(false) }
+    val showMenu = remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val activity = context as? Activity
@@ -144,11 +148,7 @@ fun ExplorerScreen(userId: String, contentPadding: PaddingValues) {
         Column(
             modifier = Modifier.padding(paddingValues)
         ) {
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    bottom = contentPadding.calculateBottomPadding()
-                )
-            ) {
+            LazyColumn {
                 items(fileList) { file ->
                     FileRow(file = file) {
                         if (file.isDirectory) {

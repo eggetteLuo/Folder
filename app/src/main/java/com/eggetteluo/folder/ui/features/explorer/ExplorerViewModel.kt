@@ -2,15 +2,22 @@ package com.eggetteluo.folder.ui.features.explorer
 
 import android.content.Context
 import android.content.Intent
-import android.os.Environment
+import android.os.Build
 import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.eggetteluo.folder.model.FileItem
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.attribute.BasicFileAttributes
 
 class ExplorerViewModel : ViewModel() {
     private val _fileList = MutableStateFlow<List<FileItem>>(emptyList())
@@ -33,16 +40,42 @@ class ExplorerViewModel : ViewModel() {
         return _currentPath.value?.absolutePath == userRoot?.absolutePath
     }
 
+    // 在 ExplorerViewModel.kt 中
     fun loadFiles(directory: File) {
-        val files = directory.listFiles()?.map {
-            FileItem(it.name, it.absolutePath, it.isDirectory, it.length(), it.lastModified())
-        }?.sortedWith(
-            compareByDescending<FileItem> { it.isDirectory } // 文件夹(true)排在文件(false)前面
-                .thenBy { it.name.lowercase() }              // 然后按名称不区分大小写排序
-        ) ?: emptyList()
+        viewModelScope.launch(Dispatchers.IO) {
+            val files = directory.listFiles()?.map { file ->
+                // 获取创建时间
+                val creationTime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    try {
+                        val path = Paths.get(file.absolutePath)
+                        val attributes = Files.readAttributes(path, BasicFileAttributes::class.java)
+                        attributes.creationTime().toMillis()
+                    } catch (e: Exception) {
+                        file.lastModified() // 如果读取失败，回退到最后修改时间
+                    }
+                } else {
+                    file.lastModified() // 低版本 Android 不支持，默认用最后修改时间
+                }
 
-        _fileList.value = files
-        _currentPath.value = directory
+                FileItem(
+                    name = file.name,
+                    path = file.absolutePath,
+                    isDirectory = file.isDirectory,
+                    size = if (file.isDirectory) 0L else file.length(),
+                    lastModified = file.lastModified(),
+                    createdAt = creationTime,
+                    canRead = file.canRead(),
+                    canWrite = file.canWrite(),
+                    isHidden = file.isHidden,
+                    extension = file.extension
+                )
+            }?.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() })) ?: emptyList()
+
+            withContext(Dispatchers.Main) {
+                _fileList.value = files
+                _currentPath.value = directory
+            }
+        }
     }
 
     fun navigateBack(): Boolean {
@@ -100,20 +133,13 @@ class ExplorerViewModel : ViewModel() {
         val file = File(fileItem.path)
         if (!file.exists()) return
 
-        // 1. 获取文件的扩展名
-        val extension = MimeTypeMap.getFileExtensionFromUrl(file.absolutePath)
-        // 2. 根据扩展名获取 MIME 类型（例如 .txt -> text/plain）
-        val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase())
-
-        // 3. 使用 FileProvider 生成安全的 URI
-        // 注意：这里的 "${context.packageName}.fileprovider" 必须与 Manifest 中一致
+        val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension)
         val uri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
             file
         )
 
-        // 4. 创建并启动 Intent
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, type)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // 授予临时读取权限
