@@ -1,6 +1,7 @@
 package com.eggetteluo.folder.ui.navigation
 
 import android.os.Environment
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -8,10 +9,12 @@ import androidx.navigation.compose.composable
 import com.eggetteluo.folder.ui.features.explorer.ExplorerScreen
 import com.eggetteluo.folder.ui.features.login.LoginScreen
 import com.eggetteluo.folder.ui.features.permission.PermissionScreen
-import com.eggetteluo.folder.util.requestStoragePermission
 
 @Composable
-fun AppNavGraph(navController: NavHostController) {
+fun AppNavGraph(
+    navController: NavHostController,
+    contentPadding: PaddingValues
+) {
     val startDest = if (Environment.isExternalStorageManager()) {
         Screen.Login.route
     } else {
@@ -45,8 +48,10 @@ fun AppNavGraph(navController: NavHostController) {
         // 文件管理页面路由
         composable(Screen.Explorer.route) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            // 这里建议在 features/explorer 下创建专门的页面入口
-            ExplorerScreen(userId = userId)
+            ExplorerScreen(
+                userId = userId,
+                contentPadding = contentPadding
+            )
         }
     }
 }

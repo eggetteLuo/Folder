@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -39,7 +40,7 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExplorerScreen(userId: String) {
+fun ExplorerScreen(userId: String, contentPadding: PaddingValues) {
     val viewModel: ExplorerViewModel = viewModel()
     val fileList by viewModel.fileList.collectAsState()
     val currentPath by viewModel.currentPath.collectAsState()
@@ -78,6 +79,7 @@ fun ExplorerScreen(userId: String) {
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
+                windowInsets = TopAppBarDefaults.windowInsets,
                 navigationIcon = {
                     if (!isRoot) {
                         IconButton(onClick = { viewModel.navigateBack() }) {
@@ -142,7 +144,11 @@ fun ExplorerScreen(userId: String) {
         Column(
             modifier = Modifier.padding(paddingValues)
         ) {
-            LazyColumn {
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    bottom = paddingValues.calculateBottomPadding()
+                )
+            ) {
                 items(fileList) { file ->
                     FileRow(file = file) {
                         if (file.isDirectory) {

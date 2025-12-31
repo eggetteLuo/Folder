@@ -21,9 +21,7 @@ class MainActivity : FragmentActivity() {
                 FolderTheme {
                     val navController = rememberNavController()
                     Scaffold { innerPadding ->
-                        Box(modifier = Modifier.padding(innerPadding)) {
-                            AppNavGraph(navController = navController)
-                        }
+                        AppNavGraph(navController = navController, contentPadding = innerPadding)
                     }
                 }
             }
