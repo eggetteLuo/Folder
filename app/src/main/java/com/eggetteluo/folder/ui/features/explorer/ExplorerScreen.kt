@@ -12,9 +12,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DriveFileMove
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.eggetteluo.folder.model.FileItem
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +64,7 @@ fun ExplorerScreen(userId: String) {
     val showDialog = remember { mutableStateOf(false) }
     val newFolderName = remember { mutableStateOf("") }
     val showMenu = remember { mutableStateOf(false) }
+    val selectedFile = remember { mutableStateOf<FileItem?>(null) }
 
     val context = LocalContext.current
     val activity = context as? Activity
@@ -133,15 +143,46 @@ fun ExplorerScreen(userId: String) {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    showDialog.value = true
-                    newFolderName.value = ""
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "新建文件")
+            if (selectedFile.value == null) {
+                FloatingActionButton(
+                    onClick = {
+                        showDialog.value = true
+                        newFolderName.value = ""
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "新建文件")
+                }
+            }
+        },
+        bottomBar = {
+            if (selectedFile.value != null) {
+                BottomAppBar(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    actions = {
+                        // 封装一个简单的工具按钮组件
+                        ActionIconButton(Icons.Default.Delete, "删除") {
+                            // 调用 viewModel.delete(selectedFile!!)
+                        }
+                        ActionIconButton(Icons.Default.Info, "详情") {
+                            // 显示详情对话框
+                        }
+                        ActionIconButton(Icons.Default.DriveFileMove, "移动") {
+                            // 移动逻辑
+                        }
+                        ActionIconButton(Icons.Default.ContentCopy, "复制") {
+                            // 复制逻辑
+                        }
+                        ActionIconButton(Icons.Default.Edit, "重命名") {
+                            // 重命名逻辑
+                        }
+                        ActionIconButton(Icons.Default.Cancel, "取消") {
+                            selectedFile.value = null
+                        }
+                    }
+                )
             }
         }
     ) { paddingValues ->
@@ -155,15 +196,23 @@ fun ExplorerScreen(userId: String) {
             } else {
                 LazyColumn {
                     items(fileList) { file ->
-                        FileRow(file = file) {
-                            if (file.isDirectory) {
-                                // 如果是文件夹，加载内容
-                                viewModel.loadFiles(File(file.path))
-                            } else {
-                                // 如果是文件，尝试打开
-                                viewModel.openFile(context, file)
+                        FileRow(
+                            file = file,
+                            onClick = {
+                                if (selectedFile.value != null) {
+                                    // 如果当前处于选中模式，点击任何项可能意味着取消选中
+                                    selectedFile.value = null
+                                } else {
+                                    // 正常的目录跳转或打开文件逻辑
+                                    if (file.isDirectory) viewModel.loadFiles(File(file.path))
+                                    else viewModel.openFile(context, file)
+                                }
+                            },
+                            onLongClick = {
+                                // 长按时，记录选中的文件，这会触发 Scaffold 底部工具栏的弹出
+                                selectedFile.value = file
                             }
-                        }
+                        )
                     }
                 }
             }

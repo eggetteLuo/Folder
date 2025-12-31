@@ -1,6 +1,10 @@
 package com.eggetteluo.folder.ui.features.explorer
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
@@ -17,10 +21,12 @@ import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,13 +37,20 @@ import com.eggetteluo.folder.util.formatFileDate
 import com.eggetteluo.folder.util.formatFileSize
 import com.eggetteluo.folder.util.getFolderItemCount
 
-// 组件 1：单个文件行
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun FileRow(file: FileItem, onClick: () -> Unit) {
+fun FileRow(
+    file: FileItem,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
     val theme = getFileTheme(file)
 
     ListItem(
-        modifier = Modifier.clickable { onClick() },
+        modifier = Modifier.combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick // 绑定长按事件
+        ),
         leadingContent = {
             Icon(
                 imageVector = theme.icon,
@@ -131,5 +144,20 @@ fun getFileTheme(file: FileItem): FileIconTheme {
             FileIconTheme(Icons.Default.Article, Color(0xFF9C27B0))
 
         else -> FileIconTheme(Icons.Default.Description, Color.Gray)
+    }
+}
+
+@Composable
+fun ActionIconButton(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+            .clickable { onClick() }
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(icon, contentDescription = label)
+        }
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
