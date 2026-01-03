@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import androidx.core.content.edit
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("user_creds", Context.MODE_PRIVATE)
@@ -34,7 +35,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
         if (savedPass == null) {
             // 初次登录，自动注册密码
-            prefs.edit().putString("pwd_$user", pass).apply()
+            prefs.edit { putString("pwd_$user", pass) }
             onSuccess(user)
         } else {
             // 验证密码
