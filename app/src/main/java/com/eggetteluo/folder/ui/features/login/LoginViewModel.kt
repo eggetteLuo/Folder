@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.StateFlow
 import androidx.core.content.edit
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
+
+    // 调用安卓本地缓存
     private val prefs = application.getSharedPreferences("user_creds", Context.MODE_PRIVATE)
 
     private val _usernameInput = MutableStateFlow("")
@@ -19,8 +21,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    fun onUsernameChange(input: String) { _usernameInput.value = input }
-    fun onPasswordChange(input: String) { _passwordInput.value = input }
+    fun onUsernameChange(input: String) {
+        _usernameInput.value = input
+    }
+    fun onPasswordChange(input: String) {
+        _passwordInput.value = input
+    }
 
     fun performLogin(onSuccess: (String) -> Unit) {
         val user = _usernameInput.value

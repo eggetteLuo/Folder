@@ -44,11 +44,17 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "私有文件管理", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+        Text(
+            text = "私有文件管理",
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
 
         Spacer(modifier = Modifier.height(48.dp))
 
@@ -70,9 +76,13 @@ fun LoginScreen(
             label = { Text("访问密码") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible)
+                VisualTransformation.None
+            else
+                PasswordVisualTransformation(),
             trailingIcon = {
-                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                val image =
+                    if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(imageVector = image, contentDescription = null)
                 }
@@ -85,7 +95,9 @@ fun LoginScreen(
                 text = errorMsg!!,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.align(Alignment.Start).padding(top = 4.dp)
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(top = 4.dp)
             )
         }
 
@@ -93,7 +105,9 @@ fun LoginScreen(
 
         Button(
             onClick = { viewModel.performLogin(onLoginSuccess) },
-            modifier = Modifier.fillMaxWidth().height(50.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
         ) {
             Text("安全进入空间")
         }
