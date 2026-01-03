@@ -20,6 +20,13 @@ import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 
 class ExplorerViewModel : ViewModel() {
+
+    enum class SortOrder {
+        NAME,       // 按名称排序
+        TIME_DESC,  // 按创建时间倒序（最新的在前）
+        TIME_ASC    // 按创建时间正序
+    }
+
     private val _fileList = MutableStateFlow<List<FileItem>>(emptyList())
     val fileList: StateFlow<List<FileItem>> = _fileList
 
@@ -27,6 +34,15 @@ class ExplorerViewModel : ViewModel() {
     val currentPath: StateFlow<File?> = _currentPath
 
     private var userRoot: File? = null
+
+    // 定义操作类型
+    enum class TransferMode { COPY, CUT, NONE }
+
+    private val _clipboardFile = MutableStateFlow<FileItem?>(null)
+    private val _transferMode = MutableStateFlow(TransferMode.NONE)
+
+    val clipboardFile: StateFlow<FileItem?> = _clipboardFile
+    val transferMode: StateFlow<TransferMode> = _transferMode
 
     fun initUserSpace(userId: String) {
         val root = File("/storage/emulated/0/MyFileManager/$userId")
@@ -40,7 +56,6 @@ class ExplorerViewModel : ViewModel() {
         return _currentPath.value?.absolutePath == userRoot?.absolutePath
     }
 
-    // 在 ExplorerViewModel.kt 中
     fun loadFiles(directory: File) {
         viewModelScope.launch(Dispatchers.IO) {
             val files = directory.listFiles()?.map { file ->
@@ -69,13 +84,38 @@ class ExplorerViewModel : ViewModel() {
                     isHidden = file.isHidden,
                     extension = file.extension
                 )
-            }?.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() })) ?: emptyList()
+            } ?: emptyList()
+
+            val sortedFiles = when (_sortOrder.value) {
+                SortOrder.NAME -> {
+                    files.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
+                }
+
+                SortOrder.TIME_DESC -> {
+                    // 文件夹依然排在前面，然后按创建时间从新到旧
+                    files.sortedWith(compareBy({ !it.isDirectory }, { -it.createdAt }))
+                }
+
+                SortOrder.TIME_ASC -> {
+                    files.sortedWith(compareBy({ !it.isDirectory }, { it.createdAt }))
+                }
+            }
 
             withContext(Dispatchers.Main) {
-                _fileList.value = files
+                _fileList.value = sortedFiles
                 _currentPath.value = directory
             }
         }
+    }
+
+    private val _sortOrder = MutableStateFlow(SortOrder.NAME)
+    val sortOrder: StateFlow<SortOrder> = _sortOrder
+
+    // 提供一个方法供 UI 切换排序
+    fun updateSortOrder(order: SortOrder) {
+        _sortOrder.value = order
+        // 切换后重新加载当前目录以应用新排序
+        _currentPath.value?.let { loadFiles(it) }
     }
 
     fun navigateBack(): Boolean {
@@ -151,6 +191,90 @@ class ExplorerViewModel : ViewModel() {
         } catch (e: Exception) {
             // 如果系统没有能打开该类型文件的应用，可以在这里处理报错
             e.printStackTrace()
+        }
+    }
+
+    /**
+     * 删除文件或文件夹
+     */
+    fun deleteItem(fileItem: FileItem) {
+        val file = File(fileItem.path)
+        val currentDir = _currentPath.value ?: return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val success = if (file.isDirectory) {
+                    // 如果是文件夹，建议使用 deleteRecursively() 确保删除内部所有内容
+                    file.deleteRecursively()
+                } else {
+                    file.delete()
+                }
+
+                if (success) {
+                    // 删除成功后，回到主线程刷新列表
+                    loadFiles(currentDir)
+                } else {
+                    Log.e("ExplorerViewModel", "删除失败: ${file.absolutePath}")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Log.e("ExplorerViewModel", "删除异常: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * 重命名文件或文件夹
+     */
+    fun renameItem(fileItem: FileItem, newName: String) {
+        val currentFile = File(fileItem.path)
+        val parentDir = currentFile.parentFile ?: return
+        val targetFile = File(parentDir, newName)
+
+        if (targetFile.exists()) {
+            // 这里可以发送一个错误状态给 UI，提示“文件名已存在”
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val success = currentFile.renameTo(targetFile)
+                if (success) {
+                    // 刷新列表
+                    loadFiles(parentDir)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun setClipboard(file: FileItem, mode: TransferMode) {
+        _clipboardFile.value = file
+        _transferMode.value = mode
+    }
+
+    fun paste(targetFolder: File) {
+        val source = _clipboardFile.value ?: return
+        val mode = _transferMode.value
+        val sourceFile = File(source.path)
+        val destFile = File(targetFolder, sourceFile.name)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (mode == TransferMode.COPY) {
+                    sourceFile.copyRecursively(destFile, overwrite = true)
+                } else if (mode == TransferMode.CUT) {
+                    sourceFile.renameTo(destFile) // 移动操作
+                }
+
+                // 操作完成后清除剪贴板并刷新
+                _clipboardFile.value = null
+                _transferMode.value = TransferMode.NONE
+                loadFiles(targetFolder)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

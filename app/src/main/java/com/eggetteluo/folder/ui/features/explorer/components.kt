@@ -3,7 +3,9 @@ package com.eggetteluo.folder.ui.features.explorer
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -20,10 +22,12 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -159,5 +163,65 @@ fun ActionIconButton(icon: ImageVector, label: String, onClick: () -> Unit) {
             Icon(icon, contentDescription = label)
         }
         Text(label, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FileDetailsSheet(file: FileItem, onDismiss: () -> Unit) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp), // 留出底部安全距离
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "文件详情",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            // 详情列表项
+            DetailRow(label = "名称", value = file.name)
+            DetailRow(label = "类型", value = if (file.isDirectory) "文件夹" else "${file.extension.uppercase()} 文件")
+            DetailRow(label = "路径", value = file.path)
+
+            if (!file.isDirectory) {
+                DetailRow(label = "大小", value = formatFileSize(file.size))
+            }
+
+            DetailRow(label = "创建时间", value = formatFileDate(file.createdAt))
+            DetailRow(label = "修改时间", value = formatFileDate(file.lastModified))
+
+            // 权限展示
+            val permissions = buildString {
+                if (file.canRead) append("可读 ")
+                if (file.canWrite) append("可写 ")
+                if (file.isHidden) append("(隐藏)")
+            }
+            DetailRow(label = "属性", value = permissions)
+        }
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.secondary
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }

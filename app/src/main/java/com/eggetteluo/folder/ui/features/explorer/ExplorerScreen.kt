@@ -2,8 +2,10 @@ package com.eggetteluo.folder.ui.features.explorer
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,8 +18,8 @@ import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
@@ -60,11 +62,18 @@ fun ExplorerScreen(userId: String) {
     val isRoot by remember(currentPath) {
         derivedStateOf { viewModel.isRoot() }
     }
+    val isClipboardEmpty by viewModel.clipboardFile.collectAsState()
 
     val showDialog = remember { mutableStateOf(false) }
     val newFolderName = remember { mutableStateOf("") }
+
     val showMenu = remember { mutableStateOf(false) }
     val selectedFile = remember { mutableStateOf<FileItem?>(null) }
+
+    val showRenameDialog = remember { mutableStateOf(false) }
+    val renameTextFieldValue = remember { mutableStateOf("") }
+
+    val showDetailsSheet = remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val activity = context as? Activity
@@ -123,14 +132,32 @@ fun ExplorerScreen(userId: String) {
                                 text = { Text("按名称排序") },
                                 onClick = {
                                     showMenu.value = false
-                                    // 这里可以调用 viewModel 的排序逻辑
+                                    viewModel.updateSortOrder(ExplorerViewModel.SortOrder.NAME)
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("设置") },
+                                text = { Text("按时间排序 (最新优先)") },
                                 onClick = {
                                     showMenu.value = false
-                                    // 处理设置点击
+                                    viewModel.updateSortOrder(ExplorerViewModel.SortOrder.TIME_DESC)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("按时间排序 (最旧优先)") },
+                                onClick = {
+                                    showMenu.value = false
+                                    viewModel.updateSortOrder(ExplorerViewModel.SortOrder.TIME_ASC)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("粘贴") },
+                                enabled = isClipboardEmpty != null,
+                                onClick = {
+                                    // 粘贴事件
+                                    showMenu.value = false
+                                    currentPath?.let {
+                                        viewModel.paste(it)
+                                    }
                                 }
                             )
                         }
@@ -162,24 +189,43 @@ fun ExplorerScreen(userId: String) {
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.primary,
                     actions = {
-                        // 封装一个简单的工具按钮组件
-                        ActionIconButton(Icons.Default.Delete, "删除") {
-                            // 调用 viewModel.delete(selectedFile!!)
-                        }
-                        ActionIconButton(Icons.Default.Info, "详情") {
-                            // 显示详情对话框
-                        }
-                        ActionIconButton(Icons.Default.DriveFileMove, "移动") {
-                            // 移动逻辑
-                        }
-                        ActionIconButton(Icons.Default.ContentCopy, "复制") {
-                            // 复制逻辑
-                        }
-                        ActionIconButton(Icons.Default.Edit, "重命名") {
-                            // 重命名逻辑
-                        }
-                        ActionIconButton(Icons.Default.Cancel, "取消") {
-                            selectedFile.value = null
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ActionIconButton(Icons.Default.Delete, "删除") {
+                                selectedFile.value?.let {
+                                    viewModel.deleteItem(it)
+                                }
+                                selectedFile.value = null
+                            }
+                            ActionIconButton(Icons.Default.Info, "详情") {
+                                showDetailsSheet.value = true
+                            }
+                            ActionIconButton(Icons.Default.ContentCut, "剪切") {
+                                // 剪切逻辑
+                                selectedFile.value?.let {
+                                    viewModel.setClipboard(it, ExplorerViewModel.TransferMode.CUT)
+                                }
+                                selectedFile.value = null
+                            }
+                            ActionIconButton(Icons.Default.ContentCopy, "复制") {
+                                // 复制逻辑
+                                selectedFile.value?.let {
+                                    viewModel.setClipboard(it, ExplorerViewModel.TransferMode.COPY)
+                                }
+                                selectedFile.value = null
+                            }
+                            ActionIconButton(Icons.Default.Edit, "重命名") {
+                                selectedFile.value?.let {
+                                    renameTextFieldValue.value = it.name // 默认填充当前文件名
+                                    showRenameDialog.value = true
+                                }
+                            }
+                            ActionIconButton(Icons.Default.Cancel, "取消") {
+                                selectedFile.value = null
+                            }
                         }
                     }
                 )
@@ -249,6 +295,48 @@ fun ExplorerScreen(userId: String) {
                         Text("取消")
                     }
                 }
+            )
+        }
+
+        if (showRenameDialog.value && selectedFile.value != null) {
+            AlertDialog(
+                onDismissRequest = { showRenameDialog.value = false },
+                title = { Text("重命名") },
+                text = {
+                    OutlinedTextField(
+                        value = renameTextFieldValue.value,
+                        onValueChange = { renameTextFieldValue.value = it },
+                        label = { Text("新名称") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (renameTextFieldValue.value.isNotBlank() &&
+                                renameTextFieldValue.value != selectedFile.value?.name) {
+                                viewModel.renameItem(selectedFile.value!!, renameTextFieldValue.value)
+                                selectedFile.value = null // 操作完取消选中状态
+                                showRenameDialog.value = false
+                            }
+                        }
+                    ) {
+                        Text("确定")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRenameDialog.value = false }) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
+
+        if (showDetailsSheet.value && selectedFile.value != null) {
+            FileDetailsSheet(
+                file = selectedFile.value!!,
+                onDismiss = { showDetailsSheet.value = false }
             )
         }
     }
