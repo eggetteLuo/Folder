@@ -277,4 +277,31 @@ class ExplorerViewModel : ViewModel() {
             }
         }
     }
+
+    /**
+     * 将选取的图片保存到当前目录
+     */
+    fun saveImageToCurrentDir(context: Context, uri: android.net.Uri) {
+        val currentDir = _currentPath.value ?: return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val fileName = "IMG_${System.currentTimeMillis()}.jpg"
+                val targetFile = File(currentDir, fileName)
+
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    targetFile.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    loadFiles(currentDir)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Log.e("ExplorerViewModel", "图片保存失败: ${e.message}")
+            }
+        }
+    }
 }

@@ -2,6 +2,8 @@ package com.eggetteluo.folder.ui.features.explorer
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,13 +18,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SortByAlpha
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
@@ -92,6 +101,15 @@ fun ExplorerScreen(userId: String) {
         }
     }
 
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        // 当用户选完图片后回调
+        uri?.let {
+            viewModel.saveImageToCurrentDir(context, it)
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -123,37 +141,91 @@ fun ExplorerScreen(userId: String) {
                         ) {
                             DropdownMenuItem(
                                 text = { Text("刷新列表") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = Color(0xFF2196F3) // 蓝色：代表同步与刷新
+                                    )
+                                },
                                 onClick = {
                                     showMenu.value = false
                                     viewModel.currentPath.value?.let { viewModel.loadFiles(it) }
                                 }
                             )
+
                             DropdownMenuItem(
                                 text = { Text("按名称排序") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.SortByAlpha,
+                                        contentDescription = null,
+                                        tint = Color(0xFF9C27B0) // 紫色：代表逻辑与组织
+                                    )
+                                },
                                 onClick = {
                                     showMenu.value = false
                                     viewModel.updateSortOrder(ExplorerViewModel.SortOrder.NAME)
                                 }
                             )
+
                             DropdownMenuItem(
-                                text = { Text("按时间排序 (最新优先)") },
+                                text = { Text("时间排序 (新→旧)") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00BCD4) // 青色：代表历史回顾
+                                    )
+                                },
                                 onClick = {
                                     showMenu.value = false
                                     viewModel.updateSortOrder(ExplorerViewModel.SortOrder.TIME_DESC)
                                 }
                             )
+
                             DropdownMenuItem(
-                                text = { Text("按时间排序 (最旧优先)") },
+                                text = { Text("时间排序 (旧→新)") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Update,
+                                        contentDescription = null,
+                                        tint = Color(0xFF009688) // 深青色：代表更新顺序
+                                    )
+                                },
                                 onClick = {
                                     showMenu.value = false
                                     viewModel.updateSortOrder(ExplorerViewModel.SortOrder.TIME_ASC)
                                 }
                             )
+
                             DropdownMenuItem(
-                                text = { Text("粘贴") },
+                                text = { Text("从相册导入图片") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.AddPhotoAlternate,
+                                        contentDescription = null,
+                                        tint = Color(0xFF4CAF50) // 绿色：代表新增与成功
+                                    )
+                                },
+                                onClick = {
+                                    showMenu.value = false
+                                    imagePickerLauncher.launch("image/*")
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("粘贴文件") },
+                                // 只有剪贴板有内容时才高亮显示图标
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.ContentPaste,
+                                        contentDescription = null,
+                                        tint = if (isClipboardEmpty != null) MaterialTheme.colorScheme.primary else Color.Gray
+                                    )
+                                },
                                 enabled = isClipboardEmpty != null,
                                 onClick = {
-                                    // 粘贴事件
                                     showMenu.value = false
                                     currentPath?.let {
                                         viewModel.paste(it)
