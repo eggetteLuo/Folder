@@ -44,7 +44,11 @@ fun AppNavGraph(navController: NavHostController) {
         // 文件管理页面路由
         composable(Screen.Explorer.route) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            ExplorerScreen(userId = userId)
+            ExplorerScreen(userId = userId) {
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(Screen.Explorer.route) { inclusive = true }
+                }
+            }
         }
     }
 }

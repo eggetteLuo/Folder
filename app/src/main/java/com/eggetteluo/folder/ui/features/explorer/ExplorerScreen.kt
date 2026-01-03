@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.DriveFileMove
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Cancel
@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -64,7 +63,7 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExplorerScreen(userId: String) {
+fun ExplorerScreen(userId: String, onLogout: () -> Unit) {
     val viewModel: ExplorerViewModel = viewModel()
     val fileList by viewModel.fileList.collectAsState()
     val currentPath by viewModel.currentPath.collectAsState()
@@ -230,6 +229,21 @@ fun ExplorerScreen(userId: String) {
                                     currentPath?.let {
                                         viewModel.paste(it)
                                     }
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("退出登录") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                        contentDescription = null,
+                                        tint = Color(0xFFF44336) // 红色：代表警告或断开连接
+                                    )
+                                },
+                                onClick = {
+                                    showMenu.value = false
+                                    onLogout()
                                 }
                             )
                         }
